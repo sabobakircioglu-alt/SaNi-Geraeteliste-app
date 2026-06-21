@@ -423,7 +423,12 @@ async function storeGet(key){
 }
 async function storeSet(key, value){
   try{ await window.fb.setCase(key, value); return true; }
-  catch(e){ setStatus('⚠ Speichern fehlgeschlagen'); return false; }
+  catch(e){
+    setStatus('⚠ Speichern fehlgeschlagen');
+    var hint = document.getElementById('saveHint');
+    if(hint) hint.textContent = '⚠ FEHLER beim Speichern – bitte erneut versuchen! ('+(e && e.message ? e.message : e)+')';
+    return false;
+  }
 }
 async function storeDel(key){
   try{ await window.fb.delCase(key); }catch(e){}
@@ -454,6 +459,18 @@ function nowStr(){
   return p(d.getDate())+'.'+p(d.getMonth()+1)+'.'+d.getFullYear()+' '+p(d.getHours())+':'+p(d.getMinutes());
 }
 
+/* ---------- Hilfsfunktionen: Zeile <-> Objekt (Firestore erlaubt keine verschachtelten Arrays) ---------- */
+function rowToObj(vals){
+  var o={};
+  vals.forEach(function(v,i){ o['c'+i]=v; });
+  return o;
+}
+function objToRow(o, n){
+  var arr=[];
+  for(var i=0;i<n;i++){ arr.push(o && o['c'+i] !== undefined ? o['c'+i] : ''); }
+  return arr;
+}
+
 /* ---------- Daten aus dem Formular einsammeln ---------- */
 function collectData(){
   var data = { meta:{}, geraete:[], strom:[], sig1:null, sig2:null };
@@ -462,11 +479,11 @@ function collectData(){
   });
   document.getElementById('tbody').querySelectorAll('tr').forEach(function(tr){
     var vals = Array.prototype.map.call(tr.querySelectorAll('input'), function(i){return i.value;});
-    if(vals.some(function(v){return v && v.trim()!=='';})) data.geraete.push(vals);
+    if(vals.some(function(v){return v && v.trim()!=='';})) data.geraete.push(rowToObj(vals));
   });
   document.getElementById('stbody').querySelectorAll('tr').forEach(function(tr){
     var vals = Array.prototype.map.call(tr.querySelectorAll('input'), function(i){return i.value;});
-    if(vals.some(function(v){return v && v.trim()!=='';})) data.strom.push(vals);
+    if(vals.some(function(v){return v && v.trim()!=='';})) data.strom.push(rowToObj(vals));
   });
   try{ data.sig1 = document.getElementById('sig1').toDataURL('image/png'); }catch(e){}
   try{ data.sig2 = document.getElementById('sig2').toDataURL('image/png'); }catch(e){}
@@ -482,9 +499,10 @@ function fillForm(data){
   });
   // Gerätetabelle neu aufbauen
   var tb = document.getElementById('tbody'); tb.innerHTML='';
-  (data.geraete||[]).forEach(function(vals){
+  (data.geraete||[]).forEach(function(row){
     var tr = makeRow(); tb.appendChild(tr);
     var inp = tr.querySelectorAll('input');
+    var vals = Array.isArray(row) ? row : objToRow(row, 8);
     vals.forEach(function(v,i){ if(inp[i]) inp[i].value = v; });
   });
   // immer ein paar Leerzeilen anhängen
@@ -492,9 +510,10 @@ function fillForm(data){
   addRows(leer);
   // Stromtabelle
   var sb = document.getElementById('stbody'); sb.innerHTML='';
-  (data.strom||[]).forEach(function(vals){
+  (data.strom||[]).forEach(function(row){
     var tr = makeStromRow(); sb.appendChild(tr);
     var inp = tr.querySelectorAll('input');
+    var vals = Array.isArray(row) ? row : objToRow(row, 4);
     vals.forEach(function(v,i){ if(inp[i]) inp[i].value = v; });
   });
   addStromRows(Math.max(4 - (data.strom?data.strom.length:0), 2));

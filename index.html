@@ -312,7 +312,7 @@ function makeRow(){
   var tr=document.createElement('tr');
   var html='';
   for(var i=0;i<8;i++){
-    if(i===3||i===4){html+='<td><input type="date"></td>';}  // Aufbau / Abbau -> Kalender
+    if(i===3||i===4){html+='<td><input type="text" placeholder="tt.mm.jjjj"></td>';}  // Aufbau / Abbau -> freie Eingabe, nichts geht verloren
     else if(i===7){html+='<td><input type="text" readonly></td>';}  // Standzeit -> automatisch berechnet
     else{html+='<td><input type="text"></td>';}
   }
